@@ -1,9 +1,29 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { CalendarDays, Check, ChevronLeft, ChevronRight, Gift, Heart, MapPin, Music2, Pause, Sparkles, X } from 'lucide-react';
 
 const photos = ['/assets/gallery-1.jpg','/assets/gallery-2.jpg','/assets/gallery-3.jpg','/assets/gallery-4.jpg','/assets/gallery-5.jpg','/assets/gallery-6.jpg'];
+const giftDecorations = [
+  { src: '/assets/gift-mini-1.webp', className: 'gift-decor-1 gift-decor-back', x: -20, y: 10, width: 34, rotate: -22 },
+  { src: '/assets/gift-mini-2.webp', className: 'gift-decor-2 gift-decor-back', x: 168, y: 2, width: 38, rotate: 20 },
+  { src: '/assets/gift-mini-3.webp', className: 'gift-decor-3 gift-decor-back', x: -16, y: 120, width: 26, rotate: -18 },
+  { src: '/assets/gift-mini-4.webp', className: 'gift-decor-4 gift-decor-back', x: 182, y: 114, width: 24, rotate: 14 },
+  { src: '/assets/gift-mini-5.webp', className: 'gift-decor-5 gift-decor-front', x: -8, y: 172, width: 44, rotate: 8 },
+  { src: '/assets/gift-mini-6.webp', className: 'gift-decor-6 gift-decor-front', x: 26, y: 182, width: 26, rotate: -10 },
+  { src: '/assets/gift-mini-7.webp', className: 'gift-decor-7 gift-decor-front', x: 118, y: 176, width: 40, rotate: -14 },
+];
+const openingParticles = Array.from({ length: 32 }, (_, index) => {
+  const angle = Math.PI * 2 * index / 32 + ((index * 17) % 9 - 4) * .04;
+  const radius = 155 + (index * 37) % 265;
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * radius,
+    size: 9 + (index * 7) % 15,
+    delay: (index % 7) * .018,
+    rotate: (index % 2 ? -1 : 1) * (150 + (index * 47) % 240),
+  };
+});
 const wishesSeed = [
   ['Mỹ Linh', 'Chúc hai bạn trăm năm hạnh phúc, vạn sự như ý, một đám cưới thật vui!'],
   ['Trọng Nhân', 'Chúc mừng hai bạn về chung một nhà! Chúc luôn vui vẻ và yêu thương nhau thật nhiều.'],
@@ -23,7 +43,7 @@ function DateMark() {
 
 export default function Home() {
   const [opened, setOpened] = useState(false);
-  const [opening, setOpening] = useState(false);
+  const [openingPhase, setOpeningPhase] = useState<'idle' | 'opening' | 'away'>('idle');
   const [music, setMusic] = useState(false);
   const [gallery, setGallery] = useState<number | null>(null);
   const [zoomed, setZoomed] = useState(false);
@@ -114,19 +134,20 @@ export default function Home() {
   }, [opened]);
 
   function openInvitation() {
-    if (opening) return;
-    setOpening(true);
+    if (openingPhase !== 'idle') return;
+    setOpeningPhase('opening');
     const audio = audioRef.current;
     if (audio) {
       audio.volume = 0.5;
       audio.play().then(() => setMusic(true)).catch(() => setMusic(false));
     }
+    window.setTimeout(() => setOpeningPhase('away'), 500);
     window.setTimeout(() => {
       window.scrollTo(0, 0);
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
       setOpened(true);
-    }, 820);
+    }, 1300);
   }
 
   function toggleMusic() {
@@ -187,12 +208,22 @@ export default function Home() {
 
       <section className="guestbook-section section-wide reveal"><PaperCard className="guestbook-card"><h2 className="section-title">SỔ LƯU BÚT</h2><form onSubmit={submitWish}><input name="name" aria-label="Tên của bạn" placeholder="Nhập tên*" required /><textarea name="message" aria-label="Lời chúc" placeholder="Nhập lời chúc*" required /><div className="form-foot"><Sparkles size={18} /><button className="primary-button" type="submit">GỬI LỜI CHÚC</button></div>{sent && <p className="success-message">Lời chúc của bạn đã được lưu trên thiết bị này.</p>}</form></PaperCard><img className="leaf leaf-guest" alt="" src="/assets/leaf-background.webp" /><div className="wish-list">{wishes.map(([name,message], index) => <article key={`${name}-${index}`}><header><b>{name}</b><time>21:20 · 03/01/2026</time></header><p>{message}</p></article>)}</div></section>
 
-      <section className="gift-section section-wide reveal"><h2 className="section-title">HỘP QUÀ MỪNG</h2><button className="gift-button" onClick={() => setGift(true)} aria-label="Mở hộp quà mừng"><i className="gift-sparkle sparkle-one">✦</i><i className="gift-sparkle sparkle-two">✦</i><i className="gift-sparkle sparkle-three">✦</i><span className="gift-visual"><img src="/assets/giftbox.webp" alt="" /></span><span className="gift-hint">Nhấn để mở</span></button><p>Sự hiện diện của quý khách là niềm vinh hạnh của gia đình chúng tôi!</p><small>♡ Hoàng Nam & Phương Thanh</small></section>
+      <section className="gift-section section-wide reveal"><h2 className="section-title">HỘP QUÀ MỪNG</h2><button className="gift-button" onClick={() => setGift(true)} aria-label="Mở hộp quà mừng">
+        <span className="gift-sparkle sparkle-one">✦</span><span className="gift-sparkle sparkle-two">✦</span><span className="gift-sparkle sparkle-three">✦</span><span className="gift-sparkle sparkle-four">✦</span>
+        <span className="gift-confetti-wrap" aria-hidden="true">{Array.from({ length: 8 }, (_, index) => <i key={index} className={`gift-confetti gift-confetti-${index + 1}`} />)}</span>
+        <span className="gift-visual" aria-hidden="true"><span className="gift-shadow" />
+          {giftDecorations.filter(item => item.className.includes('back')).map(item => <img key={item.src} className={`gift-decor ${item.className}`} src={item.src} alt="" style={{ left: item.x, top: item.y, width: item.width, transform: `rotate(${item.rotate}deg)` }} />)}
+          <img className="gift-box-main" src="/assets/giftbox.webp" alt="" />
+          {giftDecorations.filter(item => item.className.includes('front')).map(item => <img key={item.src} className={`gift-decor ${item.className}`} src={item.src} alt="" style={{ left: item.x, top: item.y, width: item.width, transform: `rotate(${item.rotate}deg)` }} />)}
+        </span><span className="gift-hint">Nhấn để mở</span>
+      </button><p>Sự hiện diện của quý khách là niềm vinh hạnh của gia đình chúng tôi!</p><small>♡ Hoàng Nam & Phương Thanh</small></section>
     </main>
 
     <audio ref={audioRef} src="/assets/la-anh.mp3" loop preload="auto" data-video-audio="true" data-music-track-id="romantic-012" />
-    <div className={`opening-cover ${opening ? 'opening-cover--opening' : ''} ${opened ? 'opening-cover--hidden' : ''}`} aria-hidden={opened}>
+    <div className={`opening-cover opening-cover--${openingPhase} ${opened ? 'opening-cover--hidden' : ''}`} aria-hidden={opened}>
       <div className="falling-leaves" aria-hidden="true">{Array.from({ length: 12 }, (_, index) => <span key={index} className={`falling-leaf leaf-${index + 1}`}><svg viewBox="0 0 24 24"><path d="M20.8 3.2C13.6 3 7.2 5.7 4.6 10.4c-1.8 3.3-.8 6.9 1.4 8.6 2.4 1.9 6.4 1.2 8.6-1.5 3.3-4 3.9-9.2 6.2-14.3ZM4.2 20.2c3.2-4.7 7.3-8.3 12.3-10.8" /></svg></span>)}</div>
+      {openingPhase === 'away' && <div className="opening-burst" aria-hidden="true">{openingParticles.map((particle, index) => <i key={index} style={{ '--dx': `${particle.x}px`, '--dy': `${particle.y}px`, '--rot-end': `${particle.rotate}deg`, '--delay': `${particle.delay}s`, '--size': `${particle.size}px` } as CSSProperties} />)}</div>}
+      {openingPhase !== 'idle' && <div className="opening-fly-decor" aria-hidden="true"><Botanical className="fly-flower fly-left" /><Botanical className="fly-flower fly-right" flip /></div>}
       <div className="envelope-card"><Botanical className="cover-flower left" /><Botanical className="cover-flower right" flip /><div className="heart-medallion"><Heart fill="white" /></div><h2>Hoàng Nam <small>&</small> Phương Thanh</h2><div className="divider"><i />❦<i /></div><p>3 tháng 1, 2026</p><p>Thân Mời</p><button onClick={openInvitation}>Mở thiệp</button></div>
     </div>
     {opened && <button className={`music-button ${music ? 'is-playing' : ''}`} onClick={toggleMusic} aria-label={music ? 'Tạm dừng nhạc' : 'Phát nhạc'}>{music ? <Music2 size={18} /> : <Pause size={18} />}</button>}
@@ -205,6 +236,11 @@ export default function Home() {
       <div className="gallery-thumbnails" onClick={event => event.stopPropagation()}>{photos.map((photo, index) => <button key={photo} className={gallery === index ? 'active' : ''} onClick={() => { setGallery(index); setZoomed(false); }} aria-label={`Chuyển đến ảnh ${index + 1}`}><img src={photo} alt="" /></button>)}</div>
     </div>}
     {rsvp && <div className="modal" role="dialog" aria-modal="true" aria-labelledby="rsvp-title"><PaperCard className="dialog-card"><button className="dialog-x" onClick={() => setRsvp(false)} aria-label="Đóng"><X /></button><CalendarDays size={24} /><h2 id="rsvp-title">XÁC NHẬN THAM DỰ</h2><p>Niềm vui của chúng mình sẽ trọn vẹn hơn khi có bạn.</p><form onSubmit={(e) => { e.preventDefault(); setRsvp(false); }}><input aria-label="Họ và tên" placeholder="Họ và tên*" required /><select aria-label="Xác nhận tham dự" defaultValue="yes"><option value="yes">Mình sẽ tham dự</option><option value="no">Mình rất tiếc không thể tham dự</option></select><select aria-label="Số khách" defaultValue="1"><option value="1">1 khách</option><option value="2">2 khách</option><option value="3">3 khách</option></select><button className="primary-button" type="submit">GỬI XÁC NHẬN</button></form></PaperCard></div>}
-    {gift && <div className="modal" role="dialog" aria-modal="true" aria-labelledby="gift-title"><PaperCard className="dialog-card gift-dialog"><button className="dialog-x" onClick={() => setGift(false)} aria-label="Đóng"><X /></button><Gift size={28} /><h2 id="gift-title">HỘP QUÀ MỪNG</h2><p>Sự hiện diện của bạn đã là món quà quý giá nhất.</p><div className="bank-card"><b>CHÚ RỂ · ĐẶNG HOÀNG NAM</b><span>Ngân hàng ABC</span><strong>0123 456 789</strong></div><div className="bank-card"><b>CÔ DÂU · NGUYỄN PHƯƠNG THANH</b><span>Ngân hàng XYZ</span><strong>9876 543 210</strong></div></PaperCard></div>}
+    {gift && <div className="modal gift-modal" role="dialog" aria-modal="true" aria-labelledby="gift-title" onClick={() => setGift(false)}>
+      <div className="gift-dialog" onClick={event => event.stopPropagation()}>
+        <header className="gift-dialog-header"><button className="gift-dialog-close" onClick={() => setGift(false)} aria-label="Đóng"><X /></button><h2 id="gift-title">HỘP QUÀ MỪNG</h2></header>
+        <div className="gift-dialog-body"><div className="gift-method"><h3>MỪNG CƯỚI · MÃ QR</h3><div className="gift-qr-card"><img src="/assets/gift-qr-phuong.png" alt="Mã QR mừng cưới của Đặng Thanh Phương" /></div><a className="gift-qr-download" href="/assets/gift-qr-phuong.png" download="ma-qr-mung-cuoi.png" aria-label="Lưu mã QR mừng cưới"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" /></svg>Lưu mã QR</a></div><p className="gift-thank-you">Sự hiện diện của bạn đã là món quà quý giá nhất.</p></div>
+      </div>
+    </div>}
   </>;
 }
